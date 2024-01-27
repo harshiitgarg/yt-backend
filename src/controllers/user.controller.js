@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
-import { uploadCloudinary } from "../utils/cloudinary.js";
+import { deleteCloudinary, uploadCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 
@@ -253,6 +253,11 @@ const updateAvatarImage = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Avatar image file is missing");
   }
   const avatar = await uploadCloudinary(avatarLocalPath);
+  //remove the old avatar image from cloudinary
+  const user1 = await User.findById(req.user?._id);
+  if (user1.avatar) {
+    await deleteCloudinary(user.avatar);
+  }
   if (!avatar.url) {
     throw new ApiError(401, "Avatar image not uploaded");
   }
@@ -278,6 +283,10 @@ const updateCoverImage = asyncHandler(async (req, res) => {
   if (!coverImage.url) {
     throw new ApiError(401, "Cover image not uploaded");
   }
+  const user1 = await User.findById(req.user?._id);
+  if (user1.coverImage) {
+    await deleteCloudinary(user.coverImage);
+  }
   const user = await findByIdAndUpdate(
     req.user?._id,
     {
@@ -293,6 +302,65 @@ const updateCoverImage = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Cover image updated successfully", user));
 });
 
+const getUserChannelInfo = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+  if (!username?.trim()) {
+    throw new ApiError(400, "Username is required");
+  }
+  const channel = await User.aggregate([
+    {
+      $match: {
+        username: username.toLowerCase(),
+      },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers",
+      },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscriptions",
+      },
+    },
+    {
+      $addFields: {
+        subscribersCount: { $size: "$subscribers" },
+        subscriptionsCount: { $size: "$subscriptions" },
+        isSubscribed: {
+          $cond: {
+            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+            then: true,
+            else: false,
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        username: 1,
+        fullName: 1,
+        avatar: 1,
+        subscribersCount: 1,
+        subscriptionsCount: 1,
+        isSubscribed: 1,
+      },
+    },
+  ]);
+  if (!channel.length) {
+    throw new ApiError(404, "Channel not found");
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Channel found", channel[0]));
+});
+
 export {
   registerUser,
   logInUser,
@@ -303,4 +371,5 @@ export {
   updateAccountDetails,
   updateAvatarImage,
   updateCoverImage,
+  getUserChannelInfo,
 };
