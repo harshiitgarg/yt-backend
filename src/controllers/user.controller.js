@@ -174,7 +174,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Invalid authorization");
   }
   try {
-    const decodedToken = jwt.verify(incomingRefreshToken, REFRESH_TOKEN_SECRET);
+    const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
     const user = await User.findById(decodedToken._id);
     if (!user) {
       throw new ApiError(401, "Invalid authorization");
@@ -256,13 +256,13 @@ const updateAvatarImage = asyncHandler(async (req, res) => {
   const avatar = await uploadCloudinary(avatarLocalPath);
   //remove the old avatar image from cloudinary
   const user1 = await User.findById(req.user?._id);
-  if (user1.avatar) {
-    await deleteCloudinary(user.avatar);
+  if (user1?.avatar) {
+    await deleteCloudinary(user1?.avatar);
   }
   if (!avatar.url) {
     throw new ApiError(401, "Avatar image not uploaded");
   }
-  const user = await findByIdAndUpdate(
+  const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {
@@ -285,10 +285,10 @@ const updateCoverImage = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Cover image not uploaded");
   }
   const user1 = await User.findById(req.user?._id);
-  if (user1.coverImage) {
-    await deleteCloudinary(user.coverImage);
+  if (user1?.coverImage) {
+    await deleteCloudinary(user1?.coverImage);
   }
-  const user = await findByIdAndUpdate(
+  const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {
