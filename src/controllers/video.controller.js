@@ -15,7 +15,6 @@ const publishAVideo = asyncHandler(async (req, res) => {
   }
 
   //get the videofile and thumbnail from the user
-  console.log(req.files);
   const videoFilePath = req.files?.videoFile[0]?.path;
   const thumbnailPath = req.files?.thumbnail[0]?.path;
   if (
@@ -39,7 +38,6 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
   //get the duration of the video from cloudinary
   const duration = Math.floor(videoFile.duration);
-  console.log(duration, videoFile.duration);
 
   //Create a video
   const video = await Video.create({
@@ -85,7 +83,6 @@ const updateVideo = asyncHandler(async (req, res) => {
   if ([title, description].some((field) => field.trim() === "")) {
     throw new ApiError(401, "Title and description are required");
   }
-  console.log(req.file);
   if (!thumbnailPath || !req.file?.mimetype.includes("image")) {
     throw new ApiError(
       400,
