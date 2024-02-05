@@ -15,7 +15,7 @@ const addComment = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Enter some content for the content");
   }
   const { videoId } = req.params;
-  if (!videoId.trim()) {
+  if (!videoId?.trim()) {
     throw new ApiError(401, "Invalid video Id");
   }
   const video = await Video.findById(videoId);
