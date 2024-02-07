@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   deleteVideo,
+  getAllVideos,
   getVideoById,
   publishAVideo,
   togglePublishStatus,
@@ -26,6 +27,7 @@ router.route("/publish").post(
   ]),
   publishAVideo
 );
+router.route("/").get(getAllVideos);
 router.route("/getVideo/:videoId").get(getVideoById);
 router
   .route("/updateVideo/:videoId")

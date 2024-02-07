@@ -20,6 +20,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
   if (!like) {
     const createdLike = await Like.create({
       video: videoId,
+      likedBy: req.user._id,
     });
     if (!createdLike) {
       throw new ApiError(400, "Can't like the video");

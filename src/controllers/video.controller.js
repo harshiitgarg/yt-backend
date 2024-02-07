@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { deleteCloudinary, uploadCloudinary } from "../utils/cloudinary.js";
 import { Video } from "../models/video.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import mongoose from "mongoose";
 
 const publishAVideo = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
@@ -146,7 +147,50 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 });
 
 const getAllVideos = asyncHandler(async (req, res) => {
-  //Revisit and complete this using pipelines
+  const {
+    page: reqPage = 1,
+    limit: reqLimit = 10,
+    query,
+    sortBy,
+    sortType,
+    userId,
+  } = req.query;
+
+  const page = parseInt(reqPage, 10) || 1;
+  const limit = parseInt(reqLimit, 10) || 10;
+
+  if (!userId?.trim()) {
+    throw new ApiError(400, "Invalid user");
+  }
+
+  const videos = await Video.aggregate(
+    [
+      {
+        $match: {
+          owner: new mongoose.Types.ObjectId(userId),
+          isPublished: true,
+          title: {
+            $regex: new RegExp(query?.trim().split(/\s+/).join("|"), "i"),
+          },
+        },
+      },
+      sortBy
+        ? { $sort: { [sortBy]: sortType === "desc" ? -1 : 1 } }
+        : undefined,
+      {
+        $skip: (page - 1) * limit,
+      },
+      {
+        $limit: limit,
+      },
+    ].filter(Boolean)
+  );
+  if (!videos) {
+    throw new ApiError(404, "No user videos found");
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Videos fetched successfully"));
 });
 
 export {

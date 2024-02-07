@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Tweet } from "../models/tweet.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -20,9 +21,18 @@ const addTweet = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Tweet added successfully", tweet));
 });
 
-// const getUserTweets = asyncHandler(async(req, res) => {
-//     //TODO
-// })
+const getUserTweets = asyncHandler(async (req, res) => {
+  const { user } = req;
+  const tweets = await Tweet.find({
+    owner: user._id,
+  });
+  if (!tweets) {
+    throw new ApiError(404, "No tweet found for the user");
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "User tweets fetched successfully", tweets));
+});
 
 const updateTweet = asyncHandler(async (req, res) => {
   const { content } = req.body;
@@ -64,4 +74,4 @@ const deleteTweet = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Tweet deleted successfully", tweet));
 });
 
-export { addTweet, updateTweet, deleteTweet };
+export { addTweet, getUserTweets, updateTweet, deleteTweet };

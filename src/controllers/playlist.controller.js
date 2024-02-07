@@ -3,6 +3,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { Playlist } from "../models/playlist.model.js";
 import { Video } from "../models/video.model.js";
+import mongoose from "mongoose";
 
 const createPlaylist = asyncHandler(async (req, res) => {
   const { name, description } = req.body;
@@ -23,9 +24,19 @@ const createPlaylist = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Playlist created successfully", playlist));
 });
 
-// const getUserPlaylists = asyncHandler(async(req, res) => {
-//   //TODO
-// })
+const getUserPlaylists = asyncHandler(async (req, res) => {
+  const {userId} = req.params;
+  if (!userId) {
+    throw new ApiError(400, "Invalid user");
+  }
+  const playlists = await Playlist.find({
+    owner: userId,
+  })
+  if (!playlists) {
+    throw new ApiError(404, "Playlists not found");
+  }
+  return res.status(200).json(new ApiResponse(200, "Playlists fetched successfully", playlists))
+});
 
 const getPlaylistById = asyncHandler(async (req, res) => {
   const { playlistId } = req.params;
@@ -141,6 +152,7 @@ const updatePlaylist = asyncHandler(async (req, res) => {
 
 export {
   createPlaylist,
+  getUserPlaylists,
   getPlaylistById,
   addVideoToPlaylist,
   removeVideoFromPlaylist,
