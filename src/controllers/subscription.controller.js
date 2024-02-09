@@ -3,45 +3,31 @@ import { Subscription } from "../models/subscription.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { User } from "../models/user.model.js";
 
 const toggleSubscription = asyncHandler(async (req, res) => {
   const { channelId } = req.params;
-  if (!channelId?.trim()) {
+  if (!channelId?.trim() || !mongoose.Types.ObjectId.isValid(channelId)) {
     throw new ApiError(400, "Invalid channel");
   }
-  const subscribedChannel = await Subscription.findOne({
+  let message = "";
+  let subscribedChannel = await Subscription.findOneAndDelete({
     channel: new mongoose.Types.ObjectId(channelId),
     subscriber: new mongoose.Types.ObjectId(req.user._id),
   });
+  message = "Unsubscribed successfully";
   if (!subscribedChannel) {
+    const existingChannel = await User.findById(channelId);
+    if (!existingChannel) {
+      throw new ApiError(404, "Channel not found");
+    }
     subscribedChannel = await Subscription.create({
       channel: new mongoose.Types.ObjectId(channelId),
       subscriber: new mongoose.Types.ObjectId(req.user._id),
     });
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          "Channel subscribed successfully",
-          subscribedChannel
-        )
-      );
-  } else {
-    await Subscription.findOneAndDelete({
-      channel: new mongoose.Types.ObjectId(channelId),
-      subscriber: new mongoose.Types.ObjectId(req.user._id),
-    });
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          "Channel unsubscribed successfully",
-          subscribedChannel
-        )
-      );
+    message = "Subscribed successfully";
   }
+  return res.status(200).json(new ApiResponse(200, message, subscribedChannel));
 });
 
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
@@ -72,7 +58,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
       },
     },
   ]);
-  if (!subscribers) {
+  if (subscribers.length === 0) {
     throw new ApiError(404, "No subscribers");
   }
   return res
